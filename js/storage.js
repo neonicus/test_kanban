@@ -1,37 +1,70 @@
-import { STORAGE_FILE } from "./config.js";
+const USER_KEY = "kanban_user";
+const CURRENT_ROOM_KEY = "kanban_current_room";
 
-let storeCache = null;
+function getStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
-async function loadStore() {
-  if (storeCache) {
-    return storeCache;
+export function getUser() {
+  const storage = getStorage();
+  if (!storage) {
+    return null;
   }
 
-  const response = await fetch(new URL(STORAGE_FILE.path, import.meta.url));
-  if (!response.ok) {
-    throw new Error(`Failed to load storage file: ${response.status}`);
+  const raw = storage.getItem(USER_KEY);
+  if (!raw) {
+    return null;
   }
 
-  const data = await response.json();
-  storeCache = {
-    user: data.user ?? null,
-  };
-
-  return storeCache;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
-export async function getUser() {
-  const store = await loadStore();
-  return store.user;
+export function setUser(user) {
+  const storage = getStorage();
+  if (!storage) {
+    return null;
+  }
+
+  storage.setItem(USER_KEY, JSON.stringify(user));
+  return user;
 }
 
-export async function setUser(user) {
-  const store = await loadStore();
-  store.user = user;
-  return store.user;
+export function clearUser() {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+
+  storage.removeItem(USER_KEY);
 }
 
-export async function clearUser() {
-  const store = await loadStore();
-  store.user = null;
+export function getCurrentRoomId() {
+  const storage = getStorage();
+  if (!storage) {
+    return null;
+  }
+
+  return storage.getItem(CURRENT_ROOM_KEY);
+}
+
+export function setCurrentRoomId(roomId) {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+
+  if (!roomId) {
+    storage.removeItem(CURRENT_ROOM_KEY);
+    return;
+  }
+
+  storage.setItem(CURRENT_ROOM_KEY, roomId);
 }

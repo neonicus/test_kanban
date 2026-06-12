@@ -1,8 +1,6 @@
 export const APP_NAME = "Collaborative Kanban Board";
 
-export const STORAGE_FILE = {
-  path: "../data/storage.json",
-};
+export const API_BASE_URL = "/api";
 
 export const FIREBASE_CONFIG = {
   apiKey: "",

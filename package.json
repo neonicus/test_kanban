@@ -1,0 +1,17 @@
+{
+  "name": "collaborative-kanban-board",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "migrate": "node server/migrate.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "pg": "^8.21.0"
+  }
+}

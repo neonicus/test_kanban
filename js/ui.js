@@ -53,7 +53,7 @@ export function openIdentityModal() {
             <p class="muted">Create a lightweight user profile to continue.</p>
             <label class="field">
               <span>Name</span>
-              <input id="identity-name" name="displayName" type="text" maxlength="30" placeholder="Poon" autocomplete="name" />
+              <input id="identity-name" name="displayName" type="text" maxlength="30" placeholder="User" autocomplete="name" />
             </label>
             <p id="identity-error" class="field-error" aria-live="polite"></p>
             <div class="modal-actions">
@@ -242,7 +242,7 @@ export function openTaskModal(options = {}) {
             </label>
             <label class="field">
               <span>Assign To</span>
-              <input id="task-assigned" name="assignedTo" type="text" maxlength="60" placeholder="Poon" value="${escapeHtml(initialTask?.assignedTo ?? "")}" />
+              <input id="task-assigned" name="assignedTo" type="text" maxlength="60" placeholder="User" value="${escapeHtml(initialTask?.assignedTo ?? "")}" />
             </label>
             <label class="field">
               <span>Status</span>

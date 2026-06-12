@@ -53,7 +53,7 @@
 localStorage = {
   kanban_user: {
     token: "uuid",
-    displayName: "Poon"
+    displayName: "User"
   }
 }
 ```
@@ -457,7 +457,7 @@ Example:
 ```ts
 {
     token: "uuid",
-    displayName: "Poon"
+    displayName: "User"
 }
 ```
 

@@ -152,7 +152,7 @@ export function renderKanban(container) {
       return;
     }
 
-    const created = addStatus(result.name);
+    const created = await addStatus(result.name);
     if (!created) {
       createToast("Status name must be unique");
       return;
@@ -181,12 +181,11 @@ export function renderKanban(container) {
       return;
     }
 
-    const task = createTask({
+    const task = await createTask({
       title: result.title,
       description: result.description,
       assignedTo: result.assignedTo,
       statusId: result.statusId,
-      createdBy: "You",
     });
 
     if (!task) {
@@ -214,7 +213,7 @@ export function renderKanban(container) {
         return;
       }
 
-      const updated = updateStatus(statusId, result.name);
+      const updated = await updateStatus(statusId, result.name);
       if (!updated) {
         createToast("Status name must be unique");
         return;
@@ -238,7 +237,7 @@ export function renderKanban(container) {
         return;
       }
 
-      const deleted = deleteStatus(statusId);
+      const deleted = await deleteStatus(statusId);
       if (!deleted) {
         createToast("Cannot delete status with tasks");
         return;
@@ -266,7 +265,7 @@ export function renderKanban(container) {
         return;
       }
 
-      const updated = updateTask(taskId, {
+      const updated = await updateTask(taskId, {
         title: result.title,
         description: result.description,
         assignedTo: result.assignedTo,
@@ -296,7 +295,7 @@ export function renderKanban(container) {
         return;
       }
 
-      const deleted = deleteTask(taskId);
+      const deleted = await deleteTask(taskId);
       if (!deleted) {
         createToast("Unable to delete task");
         return;
@@ -334,7 +333,7 @@ export function renderKanban(container) {
         return;
       }
 
-      const moved = moveTask(taskId, statusId);
+      const moved = await moveTask(taskId, statusId);
       if (moved) {
         createToast("Task updated");
       }

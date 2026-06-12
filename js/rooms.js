@@ -34,13 +34,16 @@ export function renderLanding(container) {
       return;
     }
 
-    storeCreateRoom({
+    const createdRoom = await storeCreateRoom({
       name: room.name,
       description: room.description,
-      ownerName: room.ownerName ?? "You",
     });
 
-    renderRoomCards(container.querySelector("#room-list-state"));
+    if (!createdRoom) {
+      createToast("Unable to create room");
+      return;
+    }
+
     createToast("Room created successfully");
   });
 
@@ -90,9 +93,8 @@ function renderRoomCards(container, rooms = getRooms(), activeRoom = getCurrentR
     .join("");
 
   container.querySelectorAll("[data-room-action='enter']").forEach((button) => {
-    button.addEventListener("click", () => {
-      selectRoom(button.dataset.roomId);
-      renderRoomCards(container, getRooms(), getCurrentRoom());
+    button.addEventListener("click", async () => {
+      await selectRoom(button.dataset.roomId);
     });
   });
 }
@@ -105,7 +107,6 @@ export function createRoom(room) {
   return storeCreateRoom({
     name: room.name,
     description: room.description ?? "",
-    ownerName: room.ownerName ?? "You",
   });
 }
 

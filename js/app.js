@@ -1,6 +1,8 @@
 import { createUser, initAuth, getCurrentUser } from "./auth.js";
+import { loadBoardState } from "./boardStore.js";
 import { renderLanding } from "./rooms.js";
 import { renderKanban } from "./kanban.js";
+import { subscribeToRoomUpdates } from "./realtime.js";
 import { createToast, openIdentityModal } from "./ui.js";
 
 const roomListEl = () => document.getElementById("room-list");
@@ -30,6 +32,9 @@ async function bootstrap() {
     }
   }
 
+  await loadBoardState();
+  const stopPolling = subscribeToRoomUpdates();
+  window.addEventListener("beforeunload", stopPolling, { once: true });
   await setCurrentUserLabel();
   renderApp();
   createToast(createdUser ? "User created successfully" : "App shell loaded");

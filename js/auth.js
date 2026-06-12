@@ -1,7 +1,25 @@
 import { clearUser, getUser, setUser } from "./storage.js";
+import { createUser as apiCreateUser, fetchCurrentUser } from "./api.js";
 
 export async function initAuth() {
-  return getUser();
+  const user = getUser();
+  if (!user?.token) {
+    return null;
+  }
+
+  try {
+    const serverUser = await fetchCurrentUser();
+    if (!serverUser) {
+      clearUser();
+      return null;
+    }
+
+    setUser(serverUser);
+    return serverUser;
+  } catch {
+    clearUser();
+    return null;
+  }
 }
 
 export async function getCurrentUser() {
@@ -9,15 +27,11 @@ export async function getCurrentUser() {
 }
 
 export async function signOut() {
-  await clearUser();
+  clearUser();
 }
 
 export async function createUser(displayName) {
-  const user = {
-    token: crypto.randomUUID(),
-    displayName,
-  };
-
-  await setUser(user);
+  const user = await apiCreateUser(displayName);
+  setUser(user);
   return user;
 }

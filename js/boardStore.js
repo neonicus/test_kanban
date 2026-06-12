@@ -1,23 +1,15 @@
+import { addStatus as apiAddStatus, createRoom as apiCreateRoom, createTask as apiCreateTask, deleteStatus as apiDeleteStatus, deleteTask as apiDeleteTask, getRoom as apiGetRoom, listRooms as apiListRooms, updateStatus as apiUpdateStatus, updateTask as apiUpdateTask } from "./api.js";
+import { getCurrentRoomId, setCurrentRoomId } from "./storage.js";
+
 function emitChange() {
   window.dispatchEvent(new CustomEvent("kanban:statechange"));
-}
-
-function now() {
-  return new Date().toISOString();
-}
-
-function createDefaultStatuses() {
-  return [
-    { id: crypto.randomUUID(), name: "Todo", order: 0 },
-    { id: crypto.randomUUID(), name: "In Progress", order: 1 },
-    { id: crypto.randomUUID(), name: "Review", order: 2 },
-    { id: crypto.randomUUID(), name: "Done", order: 3 },
-  ];
 }
 
 const state = {
   rooms: [],
   currentRoomId: null,
+  currentRoom: null,
+  ready: false,
 };
 
 export function getRooms() {
@@ -25,110 +17,127 @@ export function getRooms() {
 }
 
 export function getCurrentRoom() {
-  return state.rooms.find((room) => room.id === state.currentRoomId) ?? null;
+  return state.currentRoom;
 }
 
-export function selectRoom(roomId) {
-  state.currentRoomId = roomId;
+async function refreshCurrentRoom() {
+  if (!state.currentRoomId) {
+    state.currentRoom = null;
+    return null;
+  }
+
+  try {
+    state.currentRoom = await apiGetRoom(state.currentRoomId);
+    return state.currentRoom;
+  } catch {
+    state.currentRoom = null;
+    state.currentRoomId = null;
+    setCurrentRoomId(null);
+    return null;
+  }
+}
+
+export async function loadBoardState() {
+  state.rooms = await apiListRooms();
+  state.currentRoomId = getCurrentRoomId();
+  await refreshCurrentRoom();
+  state.ready = true;
   emitChange();
+  return state;
+}
+
+export async function refreshBoardState() {
+  state.rooms = await apiListRooms();
+  await refreshCurrentRoom();
+  emitChange();
+  return state;
+}
+
+export async function selectRoom(roomId) {
+  state.currentRoomId = roomId;
+  setCurrentRoomId(roomId);
+  try {
+    await refreshCurrentRoom();
+    state.rooms = await apiListRooms();
+    emitChange();
+    return state.currentRoom;
+  } catch {
+    state.currentRoom = null;
+    emitChange();
+    return null;
+  }
 }
 
 export function leaveCurrentRoom() {
   state.currentRoomId = null;
+  state.currentRoom = null;
+  setCurrentRoomId(null);
   emitChange();
 }
 
-export function createRoom(room) {
-  const newRoom = {
-    id: crypto.randomUUID(),
-    name: room.name,
-    description: room.description ?? "",
-    ownerName: room.ownerName ?? "You",
-    memberCount: 1,
-    createdAt: now(),
-    statuses: createDefaultStatuses(),
-    tasks: [],
-  };
-
-  state.rooms.unshift(newRoom);
-  state.currentRoomId = newRoom.id;
-  emitChange();
-  return newRoom;
+export async function createRoom(room) {
+  try {
+    const createdRoom = await apiCreateRoom(room);
+    state.rooms = await apiListRooms();
+    state.currentRoomId = createdRoom.id;
+    state.currentRoom = createdRoom;
+    setCurrentRoomId(createdRoom.id);
+    emitChange();
+    return createdRoom;
+  } catch {
+    return null;
+  }
 }
 
-export function addStatus(name) {
+export async function addStatus(name) {
   const room = getCurrentRoom();
   if (!room) {
     return null;
   }
 
-  const normalizedName = name.trim().toLowerCase();
-  const hasDuplicate = room.statuses.some(
-    (status) => status.name.trim().toLowerCase() === normalizedName,
-  );
-  if (hasDuplicate) {
+  try {
+    const status = await apiAddStatus(room.id, name);
+    await refreshBoardState();
+    emitChange();
+    return status;
+  } catch {
     return null;
   }
-
-  const status = {
-    id: crypto.randomUUID(),
-    name: name.trim(),
-    order: room.statuses.length,
-  };
-
-  room.statuses.push(status);
-  emitChange();
-  return status;
 }
 
-export function updateStatus(statusId, name) {
+export async function updateStatus(statusId, name) {
   const room = getCurrentRoom();
   if (!room) {
     return null;
   }
 
-  const status = room.statuses.find((item) => item.id === statusId);
-  if (!status) {
+  try {
+    const updated = await apiUpdateStatus(statusId, name);
+    await refreshBoardState();
+    emitChange();
+    return updated;
+  } catch {
     return null;
   }
-
-  const normalizedName = name.trim().toLowerCase();
-  const hasDuplicate = room.statuses.some(
-    (item) => item.id !== statusId && item.name.trim().toLowerCase() === normalizedName,
-  );
-  if (hasDuplicate) {
-    return null;
-  }
-
-  status.name = name.trim();
-  emitChange();
-  return status;
 }
 
-export function deleteStatus(statusId) {
+export async function deleteStatus(statusId) {
   const room = getCurrentRoom();
   if (!room) {
     return false;
   }
 
-  if (room.statuses.length <= 1) {
+  try {
+    await apiDeleteStatus(statusId);
+    await refreshBoardState();
+    emitChange();
+    return true;
+  } catch {
     return false;
   }
-
-  const hasTasks = room.tasks.some((task) => task.statusId === statusId);
-  if (hasTasks) {
-    return false;
-  }
-
-  room.statuses = room.statuses.filter((status) => status.id !== statusId);
-  room.statuses.forEach((status, index) => {
-    status.order = index;
-  });
-  emitChange();
-  return true;
 }
 
-export function createTask(task) {
+export async function createTask(task) {
   const room = getCurrentRoom();
   if (!room) {
     return null;
@@ -139,58 +148,54 @@ export function createTask(task) {
     return null;
   }
 
-  const newTask = {
-    id: crypto.randomUUID(),
-    title: task.title,
-    description: task.description ?? "",
-    createdBy: task.createdBy ?? "You",
-    assignedTo: task.assignedTo ?? null,
-    roomId: room.id,
-    statusId,
-    createdAt: now(),
-    updatedAt: now(),
-  };
-
-  room.tasks.unshift(newTask);
-  emitChange();
-  return newTask;
+  try {
+    const newTask = await apiCreateTask(room.id, {
+      title: task.title,
+      description: task.description ?? "",
+      assignedTo: task.assignedTo ?? null,
+      statusId,
+    });
+    await refreshBoardState();
+    emitChange();
+    return newTask;
+  } catch {
+    return null;
+  }
 }
 
-export function updateTask(taskId, patch) {
+export async function updateTask(taskId, patch) {
   const room = getCurrentRoom();
   if (!room) {
     return null;
   }
 
-  const task = room.tasks.find((item) => item.id === taskId);
-  if (!task) {
+  try {
+    const updated = await apiUpdateTask(taskId, patch);
+    await refreshBoardState();
+    emitChange();
+    return updated;
+  } catch {
     return null;
   }
-
-  Object.assign(task, {
-    ...patch,
-    updatedAt: now(),
-  });
-  emitChange();
-  return task;
 }
 
-export function deleteTask(taskId) {
+export async function deleteTask(taskId) {
   const room = getCurrentRoom();
   if (!room) {
     return false;
   }
 
-  const nextTasks = room.tasks.filter((task) => task.id !== taskId);
-  const changed = nextTasks.length !== room.tasks.length;
-  room.tasks = nextTasks;
-  if (changed) {
+  try {
+    await apiDeleteTask(taskId);
+    await refreshBoardState();
     emitChange();
+    return true;
+  } catch {
+    return false;
   }
-  return changed;
 }
 
-export function moveTask(taskId, statusId) {
+export async function moveTask(taskId, statusId) {
   return updateTask(taskId, { statusId });
 }
 
