@@ -14,7 +14,7 @@ async function setCurrentUserLabel() {
   const user = await getCurrentUser();
   label.textContent = user ? user.displayName : "Guest";
   if (button) {
-    button.textContent = user ? "Change User" : "Create User / Login";
+    button.textContent = user ? "Change User" : "Login";
   }
 }
 

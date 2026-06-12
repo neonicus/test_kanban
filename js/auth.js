@@ -1,5 +1,5 @@
 import { clearUser, getUser, setUser } from "./storage.js";
-import { createUser as apiCreateUser, fetchCurrentUser, updateCurrentUser as apiUpdateCurrentUser } from "./api.js";
+import { createUser as apiCreateUser, fetchCurrentUser, logout as apiLogout, updateCurrentUser as apiUpdateCurrentUser } from "./api.js";
 
 export async function initAuth() {
   const user = getUser();
@@ -23,10 +23,24 @@ export async function initAuth() {
 }
 
 export async function getCurrentUser() {
-  return getUser();
+  const user = getUser();
+  if (user) {
+    return user;
+  }
+
+  try {
+    const serverUser = await fetchCurrentUser();
+    if (serverUser) {
+      setUser(serverUser);
+    }
+    return serverUser;
+  } catch {
+    return null;
+  }
 }
 
 export async function signOut() {
+  await apiLogout().catch(() => {});
   clearUser();
 }
 

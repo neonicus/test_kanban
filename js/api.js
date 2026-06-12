@@ -1,21 +1,16 @@
-import { getUser } from "./storage.js";
 import { API_BASE_URL } from "./config.js";
 
 async function request(path, options = {}) {
-  const user = getUser();
   const headers = new Headers(options.headers || {});
 
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (user?.token) {
-    headers.set("X-User-Token", user.token);
-  }
-
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
+    credentials: "include",
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
@@ -31,21 +26,12 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function getCurrentUserToken() {
-  return getUser()?.token ?? null;
-}
-
 export async function fetchCurrentUser() {
-  const token = getCurrentUserToken();
-  if (!token) {
-    return null;
-  }
-
   return request("/me");
 }
 
 export async function createUser(displayName) {
-  return request("/users", {
+  return request("/auth/login", {
     method: "POST",
     body: { displayName },
     headers: {
@@ -58,6 +44,12 @@ export async function updateCurrentUser(displayName) {
   return request("/me", {
     method: "PATCH",
     body: { displayName },
+  });
+}
+
+export async function logout() {
+  return request("/auth/logout", {
+    method: "POST",
   });
 }
 

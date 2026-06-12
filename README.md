@@ -36,6 +36,6 @@ npm run dev
 
 ## Notes
 
-- User identity is stored in browser `localStorage`.
+- User identity is stored by Neon-backed session cookie.
 - Rooms, statuses, and tasks are stored in Neon.
 - Realtime sync is handled with polling for the MVP.

@@ -13,6 +13,32 @@ const port = Number(process.env.PORT || 3001);
 app.use(express.json());
 app.use(express.static(rootDir));
 
+function parseCookies(cookieHeader = "") {
+  return cookieHeader.split(";").reduce((acc, part) => {
+    const [rawKey, ...rawValue] = part.trim().split("=");
+    if (!rawKey) {
+      return acc;
+    }
+    acc[rawKey] = decodeURIComponent(rawValue.join("=") || "");
+    return acc;
+  }, {});
+}
+
+function setAuthCookie(res, token) {
+  const isProduction = process.env.NODE_ENV === "production";
+  res.setHeader(
+    "Set-Cookie",
+    `kanban_user_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${isProduction ? "; Secure" : ""}`,
+  );
+}
+
+function clearAuthCookie(res) {
+  res.setHeader(
+    "Set-Cookie",
+    "kanban_user_token=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax",
+  );
+}
+
 function sendError(res, status, message) {
   return res.status(status).json({ error: message });
 }
@@ -179,7 +205,8 @@ async function requireRoom(roomId) {
 }
 
 function requireUserToken(req) {
-  return normalizeText(req.header("x-user-token"));
+  const cookies = parseCookies(req.header("cookie") || "");
+  return normalizeText(cookies.kanban_user_token);
 }
 
 async function requireMemberRole(roomId, userToken) {
@@ -238,7 +265,7 @@ app.get("/api/users/:token", async (req, res, next) => {
   }
 });
 
-app.post("/api/users", async (req, res, next) => {
+app.post("/api/auth/login", async (req, res, next) => {
   try {
     const displayName = normalizeText(req.body?.displayName);
     if (!displayName) {
@@ -248,16 +275,25 @@ app.post("/api/users", async (req, res, next) => {
       return sendError(res, 400, "Display name must be 30 characters or less");
     }
 
-    const result = await query(
-      `
-        insert into users (display_name)
-        values ($1)
-        returning token, display_name, created_at
-      `,
+    const existing = await query(
+      "select token, display_name, created_at from users where lower(display_name) = lower($1) limit 1",
       [displayName],
     );
 
-    return res.status(201).json(mapUser(result.rows[0]));
+    const result = existing.rows[0]
+      ? existing
+      : await query(
+          `
+            insert into users (display_name)
+            values ($1)
+            returning token, display_name, created_at
+          `,
+          [displayName],
+        );
+
+    const user = mapUser(result.rows[0]);
+    setAuthCookie(res, user.token);
+    return res.status(existing.rows[0] ? 200 : 201).json(user);
   } catch (error) {
     next(error);
   }
@@ -730,10 +766,16 @@ app.patch("/api/me", async (req, res, next) => {
       return sendError(res, 404, "User not found");
     }
 
+    setAuthCookie(res, user.token);
     return res.json(user);
   } catch (error) {
     next(error);
   }
+});
+
+app.post("/api/auth/logout", async (req, res) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
 });
 
 app.use((error, req, res, next) => {
