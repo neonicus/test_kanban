@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collaborative Kanban Board - Welcome</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo-section" onclick="window.location.href='/'">
+      <div class="logo-icon">K</div>
+      <div class="logo-text">KanbanFlow</div>
+    </div>
+    <div class="user-profile-widget" id="header-profile-widget">
+      <!-- Injected via JavaScript -->
+    </div>
+  </header>
+
+  <!-- Hero / Jumbotron Section -->
+  <div class="hero-container">
+    <h1 class="hero-title">Collaborate on projects<br>in real-time.</h1>
+    <p class="hero-subtitle">A simple, lightweight Kanban board to design, structure, and track tasks with your team. No signups required.</p>
+    
+    <!-- Core Actions -->
+    <div class="landing-actions-bar">
+      <button class="btn btn-primary" id="btn-show-create-room">
+        ➕ Create New Board
+      </button>
+      <div class="input-group">
+        <input type="text" class="input-field" id="input-join-room-id" placeholder="Enter Room ID...">
+        <button class="btn btn-secondary" id="btn-join-room">Join Board</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Rooms Section -->
+  <section class="rooms-section">
+    <div class="rooms-title-bar">
+      <h2>Active Collaborations</h2>
+      <span class="room-date" id="rooms-last-updated">Updating...</span>
+    </div>
+    <div class="rooms-grid" id="rooms-list-grid">
+      <!-- Injected via JavaScript -->
+    </div>
+  </section>
+
+  <!-- MODAL 1: User Identity Onboarding Modal -->
+  <div class="modal-overlay" id="modal-identity">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Define Your Identity</h3>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+          To start collaborating, please enter a display name. This name will represent you in rooms, assign tasks, and write comments.
+        </p>
+        <div class="form-group">
+          <label for="input-nickname">Display Name (Max 30 chars) *</label>
+          <input type="text" class="input-field" id="input-nickname" placeholder="e.g. John Doe" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label for="input-avatar-color">Avatar Color</label>
+          <input type="color" class="input-field" id="input-avatar-color" value="#8b5cf6" style="height: 40px; padding: 0.2rem; cursor: pointer;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-submit-identity" style="width: 100%;">Enter System</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Create Room Modal -->
+  <div class="modal-overlay" id="modal-create-room">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Create Collaboration Room</h3>
+        <button class="column-btn" onclick="toggleModal('modal-create-room', false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-room-name">Room Name (Max 50 chars) *</label>
+          <input type="text" class="input-field" id="input-room-name" placeholder="e.g. Project Roadmap" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label for="input-room-desc">Description</label>
+          <textarea class="input-field" id="input-room-desc" placeholder="Briefly describe the purpose of this room..." style="min-height: 100px; resize: vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="toggleModal('modal-create-room', false)">Cancel</button>
+        <button class="btn btn-primary" id="btn-create-room-submit">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script tags -->
+  <script src="app.js"></script>
+  <script src="landing.js"></script>
+</body>
+</html>

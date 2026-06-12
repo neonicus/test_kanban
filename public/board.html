@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collaborative Kanban Board</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo-section" onclick="window.location.href='/'">
+      <div class="logo-icon">K</div>
+      <div class="logo-text">KanbanFlow</div>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='/'" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Dashboard</button>
+      <div class="user-profile-widget" id="header-profile-widget">
+        <!-- Injected via app.js -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Kanban Board Grid Container -->
+  <div class="board-container">
+    
+    <!-- Sidebar Panel -->
+    <aside class="board-sidebar">
+      <!-- Members Section -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          <span>Members</span>
+        </div>
+        <div class="members-list" id="sidebar-members-list">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Labels Section -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          <span>Board Labels</span>
+          <button class="column-btn" id="btn-manage-labels" title="Add Room Label">➕</button>
+        </div>
+        <div class="task-labels-list" id="sidebar-labels-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Owner Controls -->
+      <div class="sidebar-section" id="sidebar-owner-controls" style="display: none; border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: auto;">
+        <div class="sidebar-section-title">
+          <span>Admin Actions</span>
+        </div>
+        <button class="btn btn-danger" id="btn-delete-room" style="width: 100%; font-size: 0.85rem; padding: 0.5rem 1rem;">Delete Room</button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="board-main">
+      
+      <!-- Room Info Header Bar -->
+      <div class="room-header-bar">
+        <div class="room-meta-info">
+          <h2 id="room-display-name">Loading Board...</h2>
+          <div class="room-owner-sub" id="room-display-owner">Owner: Loading...</div>
+        </div>
+        <div class="room-actions">
+          <div class="room-id-tag" id="tag-room-id" title="Click to copy Room ID">
+            <span>Room ID: --</span>
+            <span>📋</span>
+          </div>
+          <button class="btn btn-secondary" id="btn-leave-room">Leave Board</button>
+        </div>
+      </div>
+
+      <!-- Filters & Sort Toolbar -->
+      <div class="board-toolbar">
+        <div class="toolbar-filters">
+          <input type="text" class="input-field" id="toolbar-search" placeholder="Search tasks..." style="padding: 0.4rem 0.8rem; font-size: 0.85rem; width: 180px;">
+          
+          <select class="filter-select" id="filter-assignee">
+            <option value="">All Assignees</option>
+          </select>
+          
+          <select class="filter-select" id="filter-priority">
+            <option value="">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+
+          <select class="filter-select" id="filter-label">
+            <option value="">All Labels</option>
+          </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <select class="filter-select" id="toolbar-sort">
+            <option value="default">Sort: Default</option>
+            <option value="priority">Sort: Priority (High→Low)</option>
+            <option value="dueDate">Sort: Due Date (Earliest)</option>
+            <option value="created">Sort: Created (Newest)</option>
+          </select>
+          <button class="btn btn-secondary" id="btn-clear-filters" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Reset</button>
+        </div>
+      </div>
+
+      <!-- Kanban Column Cards List -->
+      <div class="columns-area" id="kanban-columns-container">
+        <!-- Injected dynamically via JavaScript -->
+        
+        <!-- Add Column Placeholder -->
+        <div class="add-column-placeholder" id="btn-add-status-placeholder" style="display: none;">
+          <span>➕ Add Column</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: Create / Edit Task Modal -->
+  <div class="modal-overlay" id="modal-task-form">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="task-form-title">Create New Task</h3>
+        <button class="column-btn" onclick="toggleModal('modal-task-form', false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-task-title">Title *</label>
+          <input type="text" class="input-field" id="input-task-title" placeholder="What needs to be done?" maxlength="100">
+        </div>
+        <div class="form-group">
+          <label for="input-task-desc">Description</label>
+          <textarea class="input-field" id="input-task-desc" placeholder="Explain the task in detail..." style="min-height: 80px; resize: vertical;"></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="input-task-priority">Priority *</label>
+            <select class="filter-select" id="input-task-priority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="input-task-duedate">Due Date</label>
+            <input type="date" class="input-field" id="input-task-duedate" style="padding: 0.35rem 0.8rem;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="input-task-assignee">Assignee</label>
+          <select class="filter-select" id="input-task-assignee">
+            <option value="">Unassigned</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Select Labels</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="task-form-labels-container">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+        <input type="hidden" id="input-task-status-id">
+        <input type="hidden" id="input-task-id">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="toggleModal('modal-task-form', false)">Cancel</button>
+        <button class="btn btn-primary" id="btn-task-form-submit">Save Task</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Column Config Modal (Add / Edit Column) -->
+  <div class="modal-overlay" id="modal-column-form">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="column-form-title">Configure Status Column</h3>
+        <button class="column-btn" onclick="toggleModal('modal-column-form', false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-column-name">Column Name *</label>
+          <input type="text" class="input-field" id="input-column-name" placeholder="e.g. Code Review" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label for="input-column-wip">Work-In-Progress (WIP) Limit</label>
+          <input type="number" class="input-field" id="input-column-wip" placeholder="e.g. 5 (Leave blank for unlimited)" min="1">
+        </div>
+        <input type="hidden" id="input-column-id">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="toggleModal('modal-column-form', false)">Cancel</button>
+        <button class="btn btn-primary" id="btn-column-form-submit">Save Column</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Manage Room Labels Modal -->
+  <div class="modal-overlay" id="modal-labels-form">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Create Board Label</h3>
+        <button class="column-btn" onclick="toggleModal('modal-labels-form', false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-label-name">Label Name *</label>
+          <input type="text" class="input-field" id="input-label-name" placeholder="e.g. Bug, Feature" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label for="input-label-color">Label Color</label>
+          <input type="color" class="input-field" id="input-label-color" value="#8b5cf6" style="height: 40px; padding: 0.2rem; cursor: pointer;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="toggleModal('modal-labels-form', false)">Close</button>
+        <button class="btn btn-primary" id="btn-create-label-submit">Add Label</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Task Details Dialog (Comments, Subtasks, Block states) -->
+  <div class="modal-overlay" id="modal-task-details">
+    <div class="modal-dialog modal-dialog-large">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h3 id="details-task-title">Task Title</h3>
+          <span class="task-priority-badge" id="details-task-priority">Medium</span>
+        </div>
+        <button class="column-btn" onclick="toggleModal('modal-task-details', false)">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="task-details-grid">
+          
+          <!-- Main Area (Description & Subtasks & Comments) -->
+          <div class="details-main">
+            <!-- Blocked Reason -->
+            <div id="details-blocked-banner" class="blocked-indicator-bar" style="display: none; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              ⚠️ This task is blocked: <span id="details-blocked-reason-text">No reason provided.</span>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label>Description</label>
+              <div id="details-task-desc" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.95rem; white-space: pre-wrap; line-height: 1.5; min-height: 50px;">
+                No description provided.
+              </div>
+            </div>
+
+            <!-- Subtasks -->
+            <div class="subtasks-section">
+              <label id="details-subtasks-progress">Subtasks (0 / 0)</label>
+              <div class="subtask-list" id="details-subtasks-list">
+                <!-- Injected dynamically -->
+              </div>
+              <div class="input-group" id="container-add-subtask" style="margin-top: 0.5rem; display: none;">
+                <input type="text" class="input-field" id="input-new-subtask" placeholder="Add a subtask..." style="flex-grow: 1; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                <button class="btn btn-secondary" id="btn-add-subtask-submit" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Add</button>
+              </div>
+            </div>
+
+            <!-- Comments -->
+            <div class="comments-section">
+              <label>Discussion / Comments</label>
+              <div class="comment-input-area" id="container-add-comment" style="display: none;">
+                <textarea class="input-field" id="input-new-comment" placeholder="Write a comment..." style="min-height: 60px; font-size: 0.85rem; resize: vertical;" maxlength="500"></textarea>
+                <button class="btn btn-primary" id="btn-add-comment-submit" style="align-self: flex-end; padding: 0.4rem 1rem; font-size: 0.85rem;">Post</button>
+              </div>
+              <div class="comments-list" id="details-comments-list">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Side Panel (Metadata & Access Toggles) -->
+          <div class="details-side">
+            <div class="form-group">
+              <label>Assignee</label>
+              <div id="details-task-assignee" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                Unassigned
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Created By</label>
+              <div id="details-task-creator" style="font-size: 0.9rem; color: var(--text-main);">
+                Username
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Due Date</label>
+              <div id="details-task-duedate" class="task-due-date">
+                No due date
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Labels</label>
+              <div id="details-task-labels" class="task-labels-list">
+                <!-- Injected dynamically -->
+              </div>
+            </div>
+
+            <!-- Task State Toggles (Blocked / Self-Assign / Edit / Delete) -->
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.04); padding-top: 1rem;">
+              
+              <!-- Block status toggle -->
+              <div id="container-block-toggle" style="display: none; flex-direction: column; gap: 0.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" id="checkbox-block-task" class="subtask-checkbox">
+                  <span>Mark Task Blocked</span>
+                </label>
+                <input type="text" class="input-field" id="input-block-reason" placeholder="Reason for block..." style="display: none; padding: 0.35rem 0.6rem; font-size: 0.8rem;" maxlength="255">
+              </div>
+
+              <!-- Action Buttons -->
+              <button class="btn btn-secondary" id="btn-details-selfassign" style="width: 100%; font-size: 0.85rem; padding: 0.5rem;">
+                🙋 Claim Task
+              </button>
+              <button class="btn btn-secondary" id="btn-details-edit" style="width: 100%; font-size: 0.85rem; padding: 0.5rem; display: none;">
+                ✏️ Edit Task Details
+              </button>
+              <button class="btn btn-danger" id="btn-details-delete" style="width: 100%; font-size: 0.85rem; padding: 0.5rem; display: none;">
+                🗑️ Delete Task
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script tags -->
+  <script src="app.js"></script>
+  <script src="board.js"></script>
+</body>
+</html>
