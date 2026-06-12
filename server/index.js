@@ -698,6 +698,42 @@ app.get("/api/me", async (req, res, next) => {
   }
 });
 
+app.patch("/api/me", async (req, res, next) => {
+  try {
+    const userToken = requireUserToken(req);
+    if (!userToken) {
+      return sendError(res, 400, "Missing X-User-Token header");
+    }
+
+    const displayName = normalizeText(req.body?.displayName);
+    if (!displayName) {
+      return sendError(res, 400, "Display name is required");
+    }
+    if (displayName.length > 30) {
+      return sendError(res, 400, "Display name must be 30 characters or less");
+    }
+
+    const result = await query(
+      `
+        update users
+        set display_name = $2
+        where token = $1
+        returning token, display_name, created_at
+      `,
+      [userToken, displayName],
+    );
+
+    const user = mapUser(result.rows[0]);
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    return res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error, req, res, next) => {
   if (res.headersSent) {
     return next(error);

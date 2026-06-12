@@ -13,10 +13,18 @@
           <p class="eyebrow">Mockup Project</p>
           <h1>Collaborative Kanban Board</h1>
         </div>
-        <div class="header-meta">
+        <form id="identity-form" class="header-meta" autocomplete="off">
           <span id="current-user" class="chip">Guest</span>
-          <button id="identity-action-btn" class="button" type="button">Create User</button>
-        </div>
+          <input
+            id="display-name-input"
+            class="header-input"
+            name="displayName"
+            type="text"
+            maxlength="30"
+            placeholder="Enter name"
+          />
+          <button id="identity-action-btn" class="button button-primary" type="submit">Create User</button>
+        </form>
       </header>
 
       <main class="app-main">

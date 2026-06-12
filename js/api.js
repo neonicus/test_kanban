@@ -54,6 +54,13 @@ export async function createUser(displayName) {
   });
 }
 
+export async function updateCurrentUser(displayName) {
+  return request("/me", {
+    method: "PATCH",
+    body: { displayName },
+  });
+}
+
 export async function listRooms() {
   return request("/rooms");
 }

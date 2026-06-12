@@ -73,6 +73,21 @@ h1 {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.header-input {
+  min-width: 180px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.header-input:focus {
+  outline: 2px solid rgba(23, 92, 90, 0.25);
+  border-color: var(--accent);
 }
 
 .chip {
