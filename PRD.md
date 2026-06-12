@@ -63,6 +63,7 @@ session = {
 User {
     token: string
     displayName: string
+    avatarColor: string   // NEW: random color for avatar initials
 }
 ```
 
@@ -97,10 +98,37 @@ User {
 * Assign งาน
 * สร้างสถานะงาน
 * Drag & Drop task ระหว่างสถานะ
+* **[NEW]** กำหนด Priority ของ Task (Low / Medium / High / Urgent)
+* **[NEW]** กำหนด Due Date ของ Task
+* **[NEW]** กำหนด Label / Tag บน Task
+* **[NEW]** สร้าง Subtask ภายใน Task
+* **[NEW]** Comment บน Task
+* **[NEW]** Mark task ว่า Blocked พร้อม reason
+* **[NEW]** Filter tasks ตาม assignee, priority, label, due date
+* **[NEW]** Sort tasks ภายใน column ตาม priority, due date, created date
 
 ---
 
-### 4.3 Permission Control
+### 4.3 WIP Limits (NEW)
+
+Owner สามารถกำหนด Work-in-Progress (WIP) limit ต่อ column ได้
+
+Behavior:
+
+* แสดงจำนวน task / limit ที่มุมบน-ขวาของแต่ละ column  
+  Example: `3 / 5`
+* เมื่อ task เกิน limit → column header เปลี่ยนสี (warning state)
+* ไม่ block การเพิ่ม task (visual warning only สำหรับ MVP)
+
+Schema เพิ่มในตาราง `statuses`:
+
+```ts
+wipLimit: number | null   // null = no limit
+```
+
+---
+
+### 4.4 Permission Control
 
 #### Visitor
 
@@ -110,6 +138,7 @@ User {
 
 * ดู board ได้
 * ดู task ได้
+* ดู comment ได้
 
 ไม่สามารถ:
 
@@ -118,6 +147,7 @@ User {
 * ลบ task
 * drag & drop
 * assign task
+* comment
 
 ---
 
@@ -132,12 +162,16 @@ User {
 * ลบ task ของตนเอง
 * assign task ให้ตัวเอง
 * drag & drop task
+* **[NEW]** comment บน task ใดก็ได้
+* **[NEW]** สร้าง subtask ใน task ของตนเอง
+* **[NEW]** mark task ของตนเองว่า Blocked
 
 ไม่สามารถ:
 
 * ลบ task ของคนอื่น
 * จัดการสมาชิก
 * ลบ room
+* กำหนด WIP limit
 
 ---
 
@@ -152,6 +186,8 @@ User {
 * remove member permission
 * ลบ task ของทุกคน
 * จัดการสถานะงาน
+* **[NEW]** กำหนด WIP limit ต่อ column
+* **[NEW]** ลบ comment ของใครก็ได้
 * แก้ไข room
 * ลบ room
 
@@ -172,7 +208,7 @@ User {
 #### Header
 
 * Logo / App Name
-* Current Username
+* Current Username (with avatar initials + color)
 
 #### User Identity Modal
 
@@ -200,6 +236,7 @@ Card Information:
 * Description
 * Owner Name
 * Member Count
+* **[NEW]** Task Count (total active tasks)
 * Created Date
 * Join Button
 
@@ -255,6 +292,8 @@ User สามารถ:
 ----------------------------------------------------
 Room Header
 ----------------------------------------------------
+Toolbar (Filter / Sort / Search)       [NEW]
+----------------------------------------------------
 Sidebar | Kanban Board
 ----------------------------------------------------
 ```
@@ -273,7 +312,25 @@ Sidebar | Kanban Board
 Owner Only:
 
 * Manage Members
-* Manage Status
+* Manage Status (incl. WIP Limits)
+
+---
+
+### Toolbar (NEW)
+
+แสดง controls สำหรับ filter และ sort board
+
+Elements:
+
+```text
+[ Search tasks... ]  [ Assignee ▾ ]  [ Priority ▾ ]  [ Label ▾ ]  [ Due Date ▾ ]  [ Sort: Default ▾ ]  [ Clear Filters ]
+```
+
+Behavior:
+
+* Filter แบบ real-time บน client
+* ถ้า filter active → highlight ปุ่ม filter นั้น
+* Sort options: Default, Priority (High→Low), Due Date (Earliest), Created (Newest)
 
 ---
 
@@ -288,6 +345,10 @@ Status:
 * Owner
 * Member
 * Visitor
+
+**[NEW]** แสดง avatar initials + color ของแต่ละคน
+
+**[NEW]** แสดง online indicator (polling-based)
 
 Owner Action:
 
@@ -306,6 +367,17 @@ Example:
 Todo | In Progress | Review | Done
 ```
 
+**[NEW]** แต่ละ column แสดง:
+
+```text
+[ Column Name ]   3 / 5   [+]
+```
+
+* จำนวน task / WIP limit
+* ปุ่ม [+] เพิ่ม task ใน column นั้นได้เลย (quick add)
+
+**[NEW]** Column ที่เกิน WIP limit → header highlight สีแดง/ส้ม
+
 ---
 
 ### Status Management
@@ -314,6 +386,8 @@ Owner สามารถ:
 
 * เพิ่มสถานะ
 * แก้ไขชื่อสถานะ
+* **[NEW]** กำหนด WIP limit ต่อสถานะ
+* **[NEW]** เรียงลำดับสถานะ (drag column header)
 * ลบสถานะ
 
 Constraint:
@@ -332,6 +406,11 @@ Task {
     id: string
     title: string
     description: string
+    priority: "low" | "medium" | "high" | "urgent"   // NEW
+    labels: string[]                                   // NEW
+    dueDate: date | null                               // NEW
+    isBlocked: boolean                                 // NEW
+    blockedReason: string | null                       // NEW
     createdBy: string
     assignedTo: string | null
     roomId: string
@@ -341,13 +420,101 @@ Task {
 }
 ```
 
-แสดง:
+แสดงบน card:
 
 * Title
-* Description Preview
-* Assignee
+* Priority badge (color-coded)  **[NEW]**
+* Labels (colored tags)          **[NEW]**
+* Due Date (แสดงสีแดงหาก overdue)  **[NEW]**
+* Blocked indicator              **[NEW]**
+* Assignee avatar
 * Created By
 * Updated Time
+* Subtask progress: `2 / 5 ✓`   **[NEW]**
+* Comment count                  **[NEW]**
+
+---
+
+### Task Detail Modal (NEW)
+
+เปิด modal เต็มเมื่อคลิกที่ card
+
+Sections:
+
+```text
+[ Title ]                    [ Priority ▾ ] [ Labels ▾ ]
+[ Description (markdown) ]
+[ Due Date ]  [ Assigned To ]
+[ Blocked ]  [ Blocked Reason ]
+
+--- Subtasks ---
+☐ Subtask 1
+☐ Subtask 2
+[ + Add subtask ]
+
+--- Comments ---
+Avatar  Username  timestamp
+        Comment text
+[ Write a comment... ] [Post]
+```
+
+---
+
+### Subtasks (NEW)
+
+```ts
+Subtask {
+    id: string
+    taskId: string
+    title: string
+    completed: boolean
+    createdBy: string
+    createdAt: timestamp
+}
+```
+
+Permission:
+
+* Member → สร้าง/จัดการ subtask ใน task ของตนเอง
+* Owner → จัดการ subtask ทุก task
+
+---
+
+### Labels (NEW)
+
+```ts
+Label {
+    id: string
+    roomId: string
+    name: string
+    color: string   // hex color
+}
+```
+
+* Owner สร้าง Label ระดับ room
+* Member เลือก label บน task ได้
+* แสดงบน card เป็น colored badge
+
+---
+
+### Comments (NEW)
+
+```ts
+Comment {
+    id: string
+    taskId: string
+    userToken: string
+    displayName: string
+    content: string
+    createdAt: timestamp
+}
+```
+
+Permission:
+
+* Visitor → read only
+* Member → สร้าง comment
+* Owner → ลบ comment ได้ทุก comment
 
 ---
 
@@ -358,6 +525,9 @@ Fields:
 ```ts
 Title *
 Description
+Priority (default: medium)    // NEW
+Labels                        // NEW
+Due Date                      // NEW
 Assign To
 Status
 ```
@@ -439,6 +609,7 @@ Behavior:
 
 * update `statusId`
 * sync realtime ผ่าน backend polling หรือ realtime channel
+* **[NEW]** ถ้า target column เกิน WIP limit → แสดง warning toast แต่ยังย้ายได้
 
 ---
 
@@ -447,29 +618,16 @@ Behavior:
 ### Collection: users
 
 ```ts
-users/
-    token
-```
-
-Example:
-
-```ts
 {
-    token: "uuid",
-    displayName: "User"
+    token: string,
+    displayName: string,
+    avatarColor: string    // NEW
 }
 ```
 
 ---
 
 ### Collection: sessions
-
-```ts
-sessions/
-    sessionId
-```
-
-Schema:
 
 ```ts
 {
@@ -486,13 +644,6 @@ Schema:
 ### Collection: rooms
 
 ```ts
-rooms/
-    roomId
-```
-
-Schema:
-
-```ts
 {
     id: string,
     name: string,
@@ -505,13 +656,6 @@ Schema:
 ---
 
 ### Collection: roomMembers
-
-```ts
-roomMembers/
-    memberId
-```
-
-Schema:
 
 ```ts
 {
@@ -527,17 +671,25 @@ Schema:
 ### Collection: statuses
 
 ```ts
-statuses/
-    statusId
+{
+    id: string,
+    roomId: string,
+    name: string,
+    order: number,
+    wipLimit: number | null    // NEW
+}
 ```
 
-Schema:
+---
+
+### Collection: labels (NEW)
 
 ```ts
 {
+    id: string,
     roomId: string,
     name: string,
-    order: number
+    color: string
 }
 ```
 
@@ -546,22 +698,61 @@ Schema:
 ### Collection: tasks
 
 ```ts
-tasks/
-    taskId
-```
-
-Schema:
-
-```ts
 {
+    id: string,
     roomId: string,
     title: string,
     description: string,
+    priority: "low" | "medium" | "high" | "urgent",    // NEW
+    dueDate: date | null,                               // NEW
+    isBlocked: boolean,                                 // NEW
+    blockedReason: string | null,                       // NEW
     createdBy: string,
     assignedTo: string | null,
     statusId: string,
     createdAt: timestamp,
     updatedAt: timestamp
+}
+```
+
+---
+
+### Collection: taskLabels (NEW)
+
+```ts
+{
+    taskId: string,
+    labelId: string
+}
+```
+
+---
+
+### Collection: subtasks (NEW)
+
+```ts
+{
+    id: string,
+    taskId: string,
+    title: string,
+    completed: boolean,
+    createdBy: string,
+    createdAt: timestamp
+}
+```
+
+---
+
+### Collection: comments (NEW)
+
+```ts
+{
+    id: string,
+    taskId: string,
+    userToken: string,
+    displayName: string,
+    content: string,
+    createdAt: timestamp
 }
 ```
 
@@ -578,6 +769,9 @@ Schema:
 * Task update realtime
 * Status update realtime
 * Drag and drop sync realtime
+* **[NEW]** Comment update realtime (polling)
+* **[NEW]** Subtask update realtime (polling)
+* **[NEW]** WIP count update realtime (polling)
 
 ---
 
@@ -602,6 +796,11 @@ Schema:
 * Toast Notification
 * Confirm Delete Dialog
 * Loading State
+* **[NEW]** Priority color badge (Low=blue, Medium=yellow, High=orange, Urgent=red)
+* **[NEW]** Due date overdue highlight (red text + icon)
+* **[NEW]** Blocked task visual indicator (striped overlay หรือ warning icon บน card)
+* **[NEW]** WIP exceeded column highlight (column header = red/orange)
+* **[NEW]** Empty state message ต่อ column เมื่อไม่มี task
 
 ---
 
@@ -612,6 +811,10 @@ Task created successfully
 Permission denied
 Status updated
 Member assigned
+Task blocked: [reason]          // NEW
+WIP limit exceeded for [column] // NEW
+Due date is overdue             // NEW
+Comment added                   // NEW
 ```
 
 ---
@@ -627,6 +830,8 @@ Member assigned
 
 * title required
 * max 100 chars
+* **[NEW]** dueDate ต้องไม่เป็นอดีต (warn only, ไม่ block)
+* **[NEW]** priority required (default: medium)
 
 ### Username
 
@@ -636,6 +841,27 @@ Member assigned
 ### Status
 
 * unique within room
+
+### WIP Limit (NEW)
+
+* integer > 0
+* null = unlimited
+
+### Label (NEW)
+
+* name required
+* max 20 chars
+* unique within room
+
+### Comment (NEW)
+
+* content required
+* max 500 chars
+
+### Subtask (NEW)
+
+* title required
+* max 100 chars
 
 ---
 
@@ -673,6 +899,34 @@ Permission denied
 
 ---
 
+### Case: Task overdue (NEW)
+
+* แสดง due date สีแดงบน card
+* ไม่ block การใช้งาน
+
+---
+
+### Case: WIP limit exceeded (NEW)
+
+* แสดง warning toast เมื่อ drag task เข้า column ที่เต็ม
+* ยังสามารถย้ายได้ (soft limit)
+* column header เปลี่ยนสี
+
+---
+
+### Case: Delete label that is in use (NEW)
+
+* ลบ label ออกจากทุก task ที่ใช้อยู่อัตโนมัติ
+
+---
+
+### Case: Blocked task drag (NEW)
+
+* ยังสามารถ drag ได้
+* แสดง warning ว่า task นี้ถูก blocked
+
+---
+
 ## 11. Backend Security Concept (Mockup)
 
 **Note:** MVP Version
@@ -691,16 +945,17 @@ Production version:
 ## 12. Future Enhancements
 
 * Authentication (Google Login)
-* Due Date
-* Task Comment
-* Activity Timeline
+* Activity Timeline / Audit Log
 * File Attachment
-* Notification
+* Notification / Email alert
 * Dark Mode
 * Board Template
-* Search / Filter
 * Invite Link
-* Audit Log
+* Cycle Time / Lead Time Analytics
+* Cumulative Flow Diagram
+* Probabilistic deadline forecasting
+* Recurring Tasks
+* Task dependency (blocks / blocked by)
 
 ---
 
@@ -723,3 +978,15 @@ Production version:
 ✅ สร้างสถานะได้
 
 ✅ sync ข้อมูล realtime ผ่าน backend ได้
+
+✅ กำหนด Priority, Due Date, Labels บน task ได้   **[NEW]**
+
+✅ สร้าง subtask ได้                               **[NEW]**
+
+✅ comment บน task ได้                             **[NEW]**
+
+✅ กำหนด WIP limit ต่อ column ได้                  **[NEW]**
+
+✅ filter / sort tasks บน board ได้                **[NEW]**
+
+✅ mark task ว่า Blocked ได้                       **[NEW]**
