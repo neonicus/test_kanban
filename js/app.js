@@ -10,8 +10,23 @@ const kanbanEl = () => document.getElementById("kanban-board");
 
 async function setCurrentUserLabel() {
   const label = document.getElementById("current-user");
+  const button = document.getElementById("identity-action-btn");
   const user = await getCurrentUser();
   label.textContent = user ? user.displayName : "Guest";
+  if (button) {
+    button.textContent = user ? "Change Name" : "Create User";
+  }
+}
+
+async function openIdentityFlow() {
+  const displayName = await openIdentityModal();
+  if (!displayName) {
+    return false;
+  }
+
+  await createUser(displayName);
+  await setCurrentUserLabel();
+  return true;
 }
 
 function renderApp() {
@@ -25,17 +40,19 @@ async function bootstrap() {
   let createdUser = false;
   const existingUser = await getCurrentUser();
   if (!existingUser) {
-    const displayName = await openIdentityModal();
-    if (displayName) {
-      await createUser(displayName);
-      createdUser = true;
-    }
+    createdUser = await openIdentityFlow();
   }
 
   await loadBoardState();
   const stopPolling = subscribeToRoomUpdates();
   window.addEventListener("beforeunload", stopPolling, { once: true });
   await setCurrentUserLabel();
+  document.getElementById("identity-action-btn")?.addEventListener("click", async () => {
+    const changed = await openIdentityFlow();
+    if (changed) {
+      createToast("User updated successfully");
+    }
+  });
   renderApp();
   createToast(createdUser ? "User created successfully" : "App shell loaded");
 }
