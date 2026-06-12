@@ -1,98 +1,68 @@
--- Collaborative Kanban Board DB Schema
+DROP TABLE IF EXISTS comments, tasks, columns, sessions, boards, users, room_members, rooms, statuses CASCADE;
 
--- 1. Users
 CREATE TABLE IF NOT EXISTS users (
-    token VARCHAR(255) PRIMARY KEY,
-    display_name VARCHAR(30) NOT NULL,
-    avatar_color VARCHAR(7) NOT NULL
+  token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  display_name VARCHAR(30) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT users_name_len CHECK (char_length(display_name) BETWEEN 1 AND 30)
 );
 
--- 2. Rooms
 CREATE TABLE IF NOT EXISTS rooms (
-    id VARCHAR(255) PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    description TEXT,
-    owner_token VARCHAR(255) REFERENCES users(token) ON DELETE RESTRICT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(50) NOT NULL,
+  description TEXT,
+  owner_token UUID NOT NULL REFERENCES users(token) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT rooms_name_len CHECK (char_length(name) BETWEEN 1 AND 50)
 );
 
--- 3. Sessions
 CREATE TABLE IF NOT EXISTS sessions (
-    session_token VARCHAR(255) PRIMARY KEY,
-    user_token VARCHAR(255) REFERENCES users(token) ON DELETE CASCADE,
-    current_room_id VARCHAR(255) REFERENCES rooms(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  session_token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_token UUID NOT NULL REFERENCES users(token) ON DELETE CASCADE,
+  current_room_id UUID REFERENCES rooms(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. Room Members
 CREATE TABLE IF NOT EXISTS room_members (
-    room_id VARCHAR(255) REFERENCES rooms(id) ON DELETE CASCADE,
-    user_token VARCHAR(255) REFERENCES users(token) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'member', 'visitor')),
-    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (room_id, user_token)
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_token UUID NOT NULL REFERENCES users(token) ON DELETE CASCADE,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'member', 'visitor')),
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (room_id, user_token)
 );
 
--- 5. Statuses
 CREATE TABLE IF NOT EXISTS statuses (
-    id VARCHAR(255) PRIMARY KEY,
-    room_id VARCHAR(255) REFERENCES rooms(id) ON DELETE CASCADE,
-    name VARCHAR(50) NOT NULL,
-    sort_order INTEGER NOT NULL,
-    wip_limit INTEGER NULL CHECK (wip_limit > 0 OR wip_limit IS NULL),
-    UNIQUE (room_id, name)
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  name VARCHAR(30) NOT NULL,
+  order_index INT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT statuses_name_len CHECK (char_length(name) BETWEEN 1 AND 30),
+  UNIQUE (room_id, order_index),
+  UNIQUE (room_id, name)
 );
 
--- 6. Labels
-CREATE TABLE IF NOT EXISTS labels (
-    id VARCHAR(255) PRIMARY KEY,
-    room_id VARCHAR(255) REFERENCES rooms(id) ON DELETE CASCADE,
-    name VARCHAR(20) NOT NULL,
-    color VARCHAR(7) NOT NULL,
-    UNIQUE (room_id, name)
-);
-
--- 7. Tasks
 CREATE TABLE IF NOT EXISTS tasks (
-    id VARCHAR(255) PRIMARY KEY,
-    room_id VARCHAR(255) REFERENCES rooms(id) ON DELETE CASCADE,
-    title VARCHAR(100) NOT NULL,
-    description TEXT,
-    priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
-    due_date TIMESTAMP NULL,
-    is_blocked BOOLEAN DEFAULT FALSE,
-    blocked_reason TEXT NULL,
-    created_by VARCHAR(255) REFERENCES users(token) ON DELETE RESTRICT,
-    assigned_to VARCHAR(255) REFERENCES users(token) ON DELETE SET NULL,
-    status_id VARCHAR(255) REFERENCES statuses(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  status_id UUID NOT NULL REFERENCES statuses(id) ON DELETE CASCADE,
+  title VARCHAR(100) NOT NULL,
+  description TEXT,
+  created_by UUID NOT NULL REFERENCES users(token) ON DELETE CASCADE,
+  assigned_to VARCHAR(60),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT tasks_title_len CHECK (char_length(title) BETWEEN 1 AND 100)
 );
 
--- 8. Task Labels
-CREATE TABLE IF NOT EXISTS task_labels (
-    task_id VARCHAR(255) REFERENCES tasks(id) ON DELETE CASCADE,
-    label_id VARCHAR(255) REFERENCES labels(id) ON DELETE CASCADE,
-    PRIMARY KEY (task_id, label_id)
-);
-
--- 9. Subtasks
-CREATE TABLE IF NOT EXISTS subtasks (
-    id VARCHAR(255) PRIMARY KEY,
-    task_id VARCHAR(255) REFERENCES tasks(id) ON DELETE CASCADE,
-    title VARCHAR(100) NOT NULL,
-    completed BOOLEAN DEFAULT FALSE,
-    created_by VARCHAR(255) REFERENCES users(token) ON DELETE RESTRICT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 10. Comments
-CREATE TABLE IF NOT EXISTS comments (
-    id VARCHAR(255) PRIMARY KEY,
-    task_id VARCHAR(255) REFERENCES tasks(id) ON DELETE CASCADE,
-    user_token VARCHAR(255) REFERENCES users(token) ON DELETE CASCADE,
-    display_name VARCHAR(100) NOT NULL,
-    content VARCHAR(500) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE INDEX IF NOT EXISTS idx_rooms_owner ON rooms(owner_token);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_token);
+CREATE INDEX IF NOT EXISTS idx_sessions_room ON sessions(current_room_id);
+CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_token);
+CREATE INDEX IF NOT EXISTS idx_statuses_room_order ON statuses(room_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_tasks_room ON tasks(room_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status_id);

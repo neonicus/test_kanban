@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Collaborative Kanban Board</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Mockup Project</p>
+          <h1>Collaborative Kanban Board</h1>
+        </div>
+        <div class="header-meta">
+          <span id="current-user" class="chip">Guest</span>
+          <button id="identity-action-btn" class="button button-primary" type="button">Login</button>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <section class="panel">
+          <h2>Landing</h2>
+          <p class="muted">Room list, create room, and join flow will live here.</p>
+          <div id="room-list" class="room-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Kanban</h2>
+          <p class="muted">Board, tasks, members, and realtime sync will live here.</p>
+          <div id="kanban-board" class="kanban-board"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="modal-root"></div>
+    <div id="toast-root"></div>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
