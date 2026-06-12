@@ -1,5 +1,17 @@
-import { addStatus as apiAddStatus, createRoom as apiCreateRoom, createTask as apiCreateTask, deleteStatus as apiDeleteStatus, deleteTask as apiDeleteTask, getRoom as apiGetRoom, joinRoom as apiJoinRoom, listRooms as apiListRooms, updateStatus as apiUpdateStatus, updateTask as apiUpdateTask } from "./api.js";
-import { getCurrentRoomId, setCurrentRoomId } from "./storage.js";
+import {
+  addStatus as apiAddStatus,
+  createRoom as apiCreateRoom,
+  createTask as apiCreateTask,
+  deleteStatus as apiDeleteStatus,
+  deleteTask as apiDeleteTask,
+  fetchSession,
+  getRoom as apiGetRoom,
+  joinRoom as apiJoinRoom,
+  listRooms as apiListRooms,
+  updateSession as apiUpdateSession,
+  updateStatus as apiUpdateStatus,
+  updateTask as apiUpdateTask,
+} from "./api.js";
 
 function emitChange() {
   window.dispatchEvent(new CustomEvent("kanban:statechange"));
@@ -32,14 +44,14 @@ async function refreshCurrentRoom() {
   } catch {
     state.currentRoom = null;
     state.currentRoomId = null;
-    setCurrentRoomId(null);
     return null;
   }
 }
 
 export async function loadBoardState() {
   state.rooms = await apiListRooms();
-  state.currentRoomId = getCurrentRoomId();
+  const session = await fetchSession();
+  state.currentRoomId = session?.currentRoomId ?? null;
   await refreshCurrentRoom();
   state.ready = true;
   emitChange();
@@ -55,8 +67,8 @@ export async function refreshBoardState() {
 
 export async function selectRoom(roomId) {
   state.currentRoomId = roomId;
-  setCurrentRoomId(roomId);
   try {
+    await apiUpdateSession(roomId);
     await refreshCurrentRoom();
     state.rooms = await apiListRooms();
     emitChange();
@@ -74,7 +86,7 @@ export async function joinRoom(roomId) {
     state.rooms = await apiListRooms();
     state.currentRoomId = joinedRoom.id;
     state.currentRoom = joinedRoom;
-    setCurrentRoomId(joinedRoom.id);
+    await apiUpdateSession(joinedRoom.id);
     emitChange();
     return joinedRoom;
   } catch {
@@ -85,7 +97,7 @@ export async function joinRoom(roomId) {
 export function leaveCurrentRoom() {
   state.currentRoomId = null;
   state.currentRoom = null;
-  setCurrentRoomId(null);
+  apiUpdateSession(null).catch(() => {});
   emitChange();
 }
 
@@ -95,7 +107,7 @@ export async function createRoom(room) {
     state.rooms = await apiListRooms();
     state.currentRoomId = createdRoom.id;
     state.currentRoom = createdRoom;
-    setCurrentRoomId(createdRoom.id);
+    await apiUpdateSession(createdRoom.id);
     emitChange();
     return createdRoom;
   } catch {

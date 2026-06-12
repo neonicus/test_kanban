@@ -143,6 +143,11 @@ function renderRoomCards(container, rooms = getRooms(), activeRoom = getCurrentR
 
   container.querySelectorAll("[data-room-action='enter']").forEach((button) => {
     button.addEventListener("click", async () => {
+      const user = await ensureUser();
+      if (!user) {
+        return;
+      }
+
       await selectRoom(button.dataset.roomId);
     });
   });

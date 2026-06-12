@@ -22,12 +22,12 @@
 
 ### Database / Backend
 
-* Firebase Firestore (Realtime Database)
-* Firebase Hosting (Optional)
+* NeonDB / PostgreSQL
+* Backend API (Node.js)
 
-### Local Storage
+### Session Storage
 
-ใช้ `localStorage` สำหรับเก็บข้อมูล token และ profile ผู้ใช้ชั่วคราว
+ใช้ NeonDB เก็บ session ของผู้ใช้และ room ที่กำลัง active อยู่ผ่าน backend
 
 ---
 
@@ -49,12 +49,11 @@
 
 ### Example
 
-```js
-localStorage = {
-  kanban_user: {
-    token: "uuid",
-    displayName: "User"
-  }
+```ts
+session = {
+  sessionToken: "uuid",
+  userToken: "uuid",
+  currentRoomId: "uuid | null"
 }
 ```
 
@@ -70,8 +69,8 @@ User {
 ### Rules
 
 * หากไม่มี token → redirect ไปหน้า Landing เพื่อกรอกชื่อ
-* Token มีอายุจนกว่าจะ clear browser storage
-* ไม่รองรับ multi-device identity sync
+* Token มีอายุจนกว่าจะ logout หรือ session ถูกลบ
+* รองรับ sync ข้อมูลผ่าน backend ได้จากหลายอุปกรณ์ถ้าใช้ account เดียวกัน
 
 ---
 
@@ -439,11 +438,11 @@ Permission:
 Behavior:
 
 * update `statusId`
-* sync realtime ผ่าน Firebase
+* sync realtime ผ่าน backend polling หรือ realtime channel
 
 ---
 
-## 6. Data Structure (Firestore)
+## 6. Data Structure (NeonDB / PostgreSQL)
 
 ### Collection: users
 
@@ -458,6 +457,27 @@ Example:
 {
     token: "uuid",
     displayName: "User"
+}
+```
+
+---
+
+### Collection: sessions
+
+```ts
+sessions/
+    sessionId
+```
+
+Schema:
+
+```ts
+{
+    sessionToken: string,
+    userToken: string,
+    currentRoomId: string | null,
+    createdAt: timestamp,
+    updatedAt: timestamp
 }
 ```
 
@@ -549,7 +569,7 @@ Schema:
 
 ## 7. Realtime Behavior
 
-ใช้ Firebase Snapshot Listener
+ใช้ polling จาก backend เป็น MVP และสามารถอัปเกรดเป็น WebSocket / SSE ภายหลัง
 
 ### Required Realtime
 
@@ -653,18 +673,18 @@ Permission denied
 
 ---
 
-## 11. Firebase Security Concept (Mockup)
+## 11. Backend Security Concept (Mockup)
 
 **Note:** MVP Version
 
-Security rule แบบง่าย:
+Security concept แบบง่าย:
 
-* allow read all
-* validate write permission ด้วย frontend logic
+* allow read ผ่าน API
+* validate write permission ด้วย backend logic
 
 Production version:
 
-* ต้องย้าย logic ไป Firebase Rules
+* ต้องย้าย logic ไป backend authorization / database rules
 
 ---
 
@@ -702,4 +722,4 @@ Production version:
 
 ✅ สร้างสถานะได้
 
-✅ sync ข้อมูล realtime ผ่าน Firebase ได้
+✅ sync ข้อมูล realtime ผ่าน backend ได้

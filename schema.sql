@@ -1,59 +1,75 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS users (
-  token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  display_name VARCHAR(30) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT users_display_name_len CHECK (char_length(display_name) BETWEEN 1 AND 30)
-);
-
-CREATE TABLE IF NOT EXISTS rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(50) NOT NULL,
-  description TEXT,
-  owner_token UUID NOT NULL REFERENCES users(token) ON DELETE RESTRICT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  name VARCHAR(60) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT rooms_name_len CHECK (char_length(name) BETWEEN 1 AND 50)
+  CONSTRAINT users_name_len CHECK (char_length(name) BETWEEN 1 AND 60)
 );
 
-CREATE TABLE IF NOT EXISTS room_members (
+CREATE TABLE IF NOT EXISTS boards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  user_token UUID NOT NULL REFERENCES users(token) ON DELETE CASCADE,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'member', 'visitor')),
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (room_id, user_token)
-);
-
-CREATE TABLE IF NOT EXISTS statuses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  name VARCHAR(30) NOT NULL,
-  sort_order INT NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  description TEXT,
+  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT statuses_name_len CHECK (char_length(name) BETWEEN 1 AND 30),
-  UNIQUE (room_id, name),
-  UNIQUE (room_id, sort_order)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT boards_title_len CHECK (char_length(title) BETWEEN 1 AND 120)
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  session_token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  current_board_id UUID REFERENCES boards(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS columns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+  title VARCHAR(80) NOT NULL,
+  order_index INT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT columns_title_len CHECK (char_length(title) BETWEEN 1 AND 80),
+  UNIQUE (board_id, order_index),
+  UNIQUE (board_id, title)
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  title VARCHAR(100) NOT NULL,
+  column_id UUID NOT NULL REFERENCES columns(id) ON DELETE CASCADE,
+  title VARCHAR(120) NOT NULL,
   description TEXT,
-  created_by UUID NOT NULL REFERENCES users(token) ON DELETE RESTRICT,
-  assigned_to UUID REFERENCES users(token) ON DELETE SET NULL,
-  status_id UUID NOT NULL REFERENCES statuses(id) ON DELETE RESTRICT,
+  priority VARCHAR(10) NOT NULL DEFAULT 'Medium',
+  due_date DATE,
+  order_index INT NOT NULL DEFAULT 0,
+  subtasks JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT tasks_title_len CHECK (char_length(title) BETWEEN 1 AND 100)
+  CONSTRAINT tasks_title_len CHECK (char_length(title) BETWEEN 1 AND 120),
+  CONSTRAINT tasks_priority_check CHECK (priority IN ('Low', 'Medium', 'High')),
+  CONSTRAINT tasks_subtasks_check CHECK (jsonb_typeof(subtasks) = 'array')
 );
 
-CREATE INDEX IF NOT EXISTS idx_rooms_owner_token ON rooms(owner_token);
-CREATE INDEX IF NOT EXISTS idx_room_members_room_id ON room_members(room_id);
-CREATE INDEX IF NOT EXISTS idx_room_members_user_token ON room_members(user_token);
-CREATE INDEX IF NOT EXISTS idx_statuses_room_order ON statuses(room_id, sort_order);
-CREATE INDEX IF NOT EXISTS idx_tasks_room_id ON tasks(room_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status_id ON tasks(status_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_boards_owner_id ON boards(owner_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_current_board_id ON sessions(current_board_id);
+CREATE INDEX IF NOT EXISTS idx_columns_board_order ON columns(board_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_tasks_column_order ON tasks(column_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+CREATE INDEX IF NOT EXISTS idx_comments_task_id ON comments(task_id);
