@@ -38,7 +38,13 @@ export function closeModal() {
   return null;
 }
 
-export function openIdentityModal() {
+export function openIdentityModal(options = {}) {
+  const {
+    title = "Enter your name",
+    description = "Create a lightweight user profile to continue.",
+    submitText = "Enter",
+    initialName = "",
+  } = options;
   const root = document.getElementById("modal-root");
   if (!root) {
     return Promise.resolve(null);
@@ -49,15 +55,15 @@ export function openIdentityModal() {
       <div class="modal-backdrop">
         <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="identity-title">
           <form id="identity-form" class="modal-form">
-            <h2 id="identity-title">Enter your name</h2>
-            <p class="muted">Create a lightweight user profile to continue.</p>
+            <h2 id="identity-title">${escapeHtml(title)}</h2>
+            <p class="muted">${escapeHtml(description)}</p>
             <label class="field">
               <span>Name</span>
-              <input id="identity-name" name="displayName" type="text" maxlength="30" placeholder="User" autocomplete="name" />
+              <input id="identity-name" name="displayName" type="text" maxlength="30" placeholder="User" autocomplete="name" value="${escapeHtml(initialName)}" />
             </label>
             <p id="identity-error" class="field-error" aria-live="polite"></p>
             <div class="modal-actions">
-              <button type="submit" class="button button-primary">Enter</button>
+              <button type="submit" class="button button-primary">${escapeHtml(submitText)}</button>
             </div>
           </form>
         </div>
@@ -86,6 +92,60 @@ export function openIdentityModal() {
 
       root.innerHTML = "";
       resolve(displayName);
+    });
+  });
+}
+
+export function openJoinRoomModal() {
+  const root = document.getElementById("modal-root");
+  if (!root) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    root.innerHTML = `
+      <div class="modal-backdrop">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="join-room-title">
+          <form id="join-room-form" class="modal-form">
+            <h2 id="join-room-title">Join a room</h2>
+            <p class="muted">Paste the room ID that someone shared with you.</p>
+            <label class="field">
+              <span>Room ID</span>
+              <input id="join-room-id" name="roomId" type="text" placeholder="Room UUID" />
+            </label>
+            <p id="join-room-error" class="field-error" aria-live="polite"></p>
+            <div class="modal-actions">
+              <button type="button" id="join-room-cancel" class="button">Cancel</button>
+              <button type="submit" class="button button-primary">Join</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const form = document.getElementById("join-room-form");
+    const input = document.getElementById("join-room-id");
+    const error = document.getElementById("join-room-error");
+    const cancelBtn = document.getElementById("join-room-cancel");
+
+    input.focus();
+
+    cancelBtn.addEventListener("click", () => {
+      root.innerHTML = "";
+      resolve(null);
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const roomId = input.value.trim();
+
+      if (!roomId) {
+        error.textContent = "Room ID is required.";
+        return;
+      }
+
+      root.innerHTML = "";
+      resolve(roomId);
     });
   });
 }

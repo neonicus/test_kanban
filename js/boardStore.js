@@ -1,4 +1,4 @@
-import { addStatus as apiAddStatus, createRoom as apiCreateRoom, createTask as apiCreateTask, deleteStatus as apiDeleteStatus, deleteTask as apiDeleteTask, getRoom as apiGetRoom, listRooms as apiListRooms, updateStatus as apiUpdateStatus, updateTask as apiUpdateTask } from "./api.js";
+import { addStatus as apiAddStatus, createRoom as apiCreateRoom, createTask as apiCreateTask, deleteStatus as apiDeleteStatus, deleteTask as apiDeleteTask, getRoom as apiGetRoom, joinRoom as apiJoinRoom, listRooms as apiListRooms, updateStatus as apiUpdateStatus, updateTask as apiUpdateTask } from "./api.js";
 import { getCurrentRoomId, setCurrentRoomId } from "./storage.js";
 
 function emitChange() {
@@ -64,6 +64,20 @@ export async function selectRoom(roomId) {
   } catch {
     state.currentRoom = null;
     emitChange();
+    return null;
+  }
+}
+
+export async function joinRoom(roomId) {
+  try {
+    const joinedRoom = await apiJoinRoom(roomId);
+    state.rooms = await apiListRooms();
+    state.currentRoomId = joinedRoom.id;
+    state.currentRoom = joinedRoom;
+    setCurrentRoomId(joinedRoom.id);
+    emitChange();
+    return joinedRoom;
+  } catch {
     return null;
   }
 }

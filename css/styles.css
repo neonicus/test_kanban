@@ -213,6 +213,67 @@ h1 {
   margin-bottom: 16px;
 }
 
+.kanban-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.board-sidebar {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.sidebar-block {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.sidebar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.member-list {
+  display: grid;
+  gap: 10px;
+}
+
+.member-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(216, 208, 196, 0.7);
+}
+
+.member-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.member-row p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.board-content {
+  min-width: 0;
+}
+
 .board-columns {
   display: grid;
   grid-template-columns: repeat(4, minmax(240px, 1fr));
@@ -426,6 +487,11 @@ h1 {
   background: var(--accent-strong);
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .button-danger {
   background: var(--danger);
   color: #fff;
@@ -459,6 +525,10 @@ h1 {
 
   .board-header {
     flex-direction: column;
+  }
+
+  .kanban-layout {
+    grid-template-columns: 1fr;
   }
 
   .board-columns {

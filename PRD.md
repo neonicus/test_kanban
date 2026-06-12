@@ -44,7 +44,7 @@
 เมื่อ submit:
 
 1. ระบบสร้าง `userToken`
-2. เก็บลง `localStorage`
+2. เก็บลง `NeonDB`
 3. ใช้ token นี้เป็น identity ในการทำงาน
 
 ### Example
